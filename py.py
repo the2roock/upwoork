@@ -4,6 +4,7 @@ from datetime import datetime
 from selenium import webdriver
 from bs4 import BeautifulSoup
 from time import sleep
+from os import path
 
 
 def save_data_to_db(data):
@@ -14,6 +15,9 @@ def save_data_to_db(data):
 
     with pymysql.connect(database=db, host=host, user=user, password=password) as connection:
         with connection.cursor() as cursor:
+            count_getted_elements = len(data)
+            count_added_elements = 0
+            time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             for element in data:
                 sql_query = "SELECT EXISTS(SELECT upwork_id FROM test_table WHERE upwork_id = \'{}\')".format(element['upwork_id'])
                 cursor.execute(sql_query)
@@ -21,10 +25,11 @@ def save_data_to_db(data):
                     print('element identified by {} is exists'.format(element['upwork_id']))
                     continue
 
-                time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 sql_query = f"INSERT INTO test_table(upwork_id, title, description, time) VALUES(\'{element['upwork_id']}\', \'{element['title']}\', \'{element['description']}\', \'{time}\')"
                 cursor.execute(sql_query)
-
+                count_added_elements += 1
+            sql_query = f"INSERT INTO logs(time, was_added, was_getted) VALUES(\'{time}\', {count_added_elements}, {count_getted_elements})"
+            cursor.execute(sql_query)
 
         connection.commit()
 
@@ -67,56 +72,41 @@ def scrap(html):
         result.append(data)
     return result
 
-bad_page_count = 0
 def check_page(html):
-    global bad_page_count
     soup = BeautifulSoup(html, 'lxml')
     if soup.find('title').text == 'Freelance Jobs - Upwork':
-        bad_page_count += 1
-        print(f'Bad page {bad_page_count}')
         return True
     return False
 
 
 
 def main():
-    dont_scraped_urls = []
+    i = 1
     while True:
-        i = 0
-        url = 'https://www.upwork.com/nx/jobs/search/?sort=recency&per_page=50&page={}'
+
         directory_path = './pages'
 
-        while dont_scraped_urls:
-            i += 1
-            url = dont_scraped_urls.pop(0)
-            html = get_html(url=url)
-            print(f'page {i}')
-            # save_page(url=url, file_name=f'{directory_path}/page.html')
-            # html = get_html_from_file(f'{directory_path}/page.html')
+        url = 'https://www.upwork.com/nx/jobs/search/?sort=recency&per_page=50'
 
-            if not check_page(html):
-                dont_scraped_urls.append(current_url)
-                continue
-            data = scrap(html)
-            save_data_to_db(data)
-            sleep(4)
+        html = get_html(url=url)
 
-        for page in range(1, 501):
-            i+=1
-            print(f'page {i}')
-            current_url = url.format(page)
-            html = get_html(url=current_url)
-            # save_page(html=html, file_name=f'{directory_path}/page_{page}.html')
-            # html = get_html_from_file(f'{directory_path}/page.html')
+        if not check_page(html=html):
+            print('Bad page found')
+            if not path.exists('log.txt'):
+                with open('log.txt', 'w'):
+                    pass
+            with open('log.txt', 'at') as file:
+                time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                file.write(f'{time}\tBad page')
+            continue
 
-            if not check_page(html):
-                dont_scraped_urls.append(current_url)
-                continue
-
-            data = scrap(html)
-            save_data_to_db(data)
-            sleep(4)
-
+        print('page in progress')
+        # save_page(url=url, file_name=f'{directory_path}/page.html')
+        # html = get_html_from_file(f'{directory_path}/page.html')
+        data = scrap(html)
+        save_data_to_db(data)
+        i += 1
+        sleep(18.5)
 
 
 
