@@ -6,6 +6,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from telebot import TeleBot
 
 from datetime import datetime
@@ -24,9 +25,12 @@ def scrap():
     URL = 'https://api.telegram.org/bot{}/'.format(Config.bot_sender_token)
 
     def get_html(url):
-        # options = webdriver.ChromeOptions()
-        # options.add_argument('headless')
-        driver = webdriver.Chrome('./chromedriver/chromedriver')
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36')
+        # options.add_argument("no-sandbox")
+        # options.add_argument("--disable-extensions")
+        driver = webdriver.Chrome(executable_path='./chromedriver/chromedriver', chrome_options=options)
 
         try:
             driver.get(url=url)
@@ -127,7 +131,15 @@ def scrap():
     def save_advanced_project_data_to_db(data):
         with db_connection() as connection:
             with connection.cursor() as cursor:
-                sql_query = f""
+                sql_query = f"SELECT EXISTS(SELECT id FROM country WHERE slug=\'{data['client']['location'].lower().replace(' ', '_')}\')"
+                cursor.execute(sql_query)
+                if cursor.fetchone()[0] == 0:
+                    sql_query = f"INSERT INTO country(name, slug) VALUES(\'{data['client']['location']}\', \'{data['client']['location'].lower().replace(' ', '_')}\')"
+                    cursor.execute(sql_query)
+                sql_query = f"SELECT id FROM country WHERE slug=\'{data['client']['location'].lower().replace(' ', '_')}\'"
+                cursor.execute(sql_query)
+                sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'country', \'{cursor.fetchone()[0]}\')"
+                cursor.execute(sql_query)
 
 
     def bot_send(data):
