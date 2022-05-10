@@ -86,11 +86,11 @@ def scrap():
                         continue
 
                     # new record to table job
-                    sql_query = f"INSERT INTO job(name, description, link) VALUES({data['title']}, {data['description']}, {data['url']})"
+                    sql_query = f"""INSERT INTO job(name, description, link) VALUES(\'{data['title'].replace("'", '')}\', \'{data['description'].replace("'", '')}\', \'{data['url']}\')"""
                     cursor.execute(sql_query)
 
                     # get job id
-                    sql_query = f"SELECT id FROM job WHERE link=\'{data['url']}\')"
+                    sql_query = f"SELECT id FROM job WHERE link=\'{data['url']}\'"
                     cursor.execute(sql_query)
                     data['id'] = cursor.fetchone()[0]
 
@@ -100,110 +100,34 @@ def scrap():
                     tags_id = []
                     for tag in data['tags']:
                         slug = tag['title'].lower().replace(' ', '_')
-                        sql_query = f"SELECT EXESTS(SELECT id FROM skill WHERE slug={slug})"
+                        sql_query = f"SELECT EXISTS(SELECT id FROM skill WHERE slug='{slug}')"
                         cursor.execute(sql_query)
                         if cursor.fetchone()[0] == 0:
-                            sql_query = f"INSERT INTO skill(name, slug) VALUES({tag['title']}, {slug})"
+                            sql_query = f"INSERT INTO skill(name, slug) VALUES(\'{tag['title']}\', \'{slug}\')"
                             cursor.execute(sql_query)
-                        sql_query = f"SELECT id FROM skill WHERE slug={slug}"
+                        sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
                         cursor.execute(sql_query)
                         tags_id.append(cursor.fetchone()[0])
 
-                    # add tags in meta_job
-                    sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'skill', {str(tags_id)})"
+                    # add tags to meta_job
+                    sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'skill', \'{str(tags_id)}\')"
                     cursor.execute(sql_query)
 
-                    # add price in meta_job
-                    sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'price', '{{'isFixed': {data['price']['is_fixed']}, 'cost': {data['price']['value']}}}')"
-                    cursor.execute(sql_query)
-                    
-
-
-
-
-
-
-
-
-
-
-                    if data['experience'] == None and data['duration'] == None:
-                        sql_query = f"INSERT INTO project(id, uid, title, description, time) VALUES(\'{data['id']}\', \'{data['uid']}\', \'{data['title']}\', \'{data['description']}\', \'{time}\')"
-                    elif data['experience'] == None and data['duration'] != None:
-                        sql_query = f"INSERT INTO project(id, uid, title, description, time, duration) VALUES(\'{data['id']}\', \'{data['uid']}\', \'{data['title']}\', \'{data['description']}\', \'{time}\', \'{data['duration']}\')"
-                    elif data['experience'] != None and data['duration'] == None:
-                        sql_query = f"INSERT INTO project(id, uid, title, description, time, experience) VALUES(\'{data['id']}\', \'{data['uid']}\', \'{data['title']}\', \'{data['description']}\', \'{time}\', \'{data['experience']}\')"
-                    else:
-                        sql_query = f"INSERT INTO project(id, uid, title, description, time, experience, duration) VALUES(\'{data['id']}\', \'{data['uid']}\', \'{data['title']}\', \'{data['description']}\', \'{time}\', \'{data['experience']}\', \'{data['duration']}\')"
-
-                    # new record to table logs
-                    count_added_elements += 1
-                    sql_query = "SELECT MAX(id) from logs"
-                    cursor.execute(sql_query)
-                    try:
-                        log_id = cursor.fetchone()[0] + 1
-                    except:
-                        log_id = 1
-                    sql_query = f"INSERT INTO logs(id, time, was_added, was_getted) VALUES({log_id}, \'{time}\', {count_added_elements}, {count_getted_elements})"
+                    # add price to meta_job
+                    sql_query = f"""INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'price', \'{{isFixed: {data['price']['is_fixed']}, cost: {str(data['price']['value']).replace("'",'')}}}\')"""
                     cursor.execute(sql_query)
 
-
-                    # add tags in table
-                    for tag in data['tags']:
-                        print(tag)
-                        # is tag exists
-                        sql_query = f"SELECT EXISTS(SELECT id FROM tag WHERE uid = \'{tag['uid']}\')"
-                        cursor.execute(sql_query)
-                        if cursor.fetchone()[0] == 0:
-                            sql_query = "SELECT MAX(id) from tag"
-                            cursor.execute(sql_query)
-                            try:
-                                tag_id =  cursor.fetchone()[0] + 1
-                            except:
-                                tag_id = 1
-                            sql_query = f"INSERT INTO tag(id, title, uid) VALUES({tag_id}, \'{tag['title']}\', \'{tag['uid']}\')"
-                            cursor.execute(sql_query)
-
-                        # get tag id from db
-                        sql_query = f"SELECT id FROM tag WHERE uid={tag['uid']}"
-                        cursor.execute(sql_query)
-                        tag['id'] = cursor.fetchone()[0]
-
-                        # new record to project_tag table
-                        sql_query = "SELECT MAX(id) from project_tag"
-                        cursor.execute(sql_query)
-                        try:
-                            project_tag_id =  cursor.fetchone()[0] + 1
-                        except:
-                            project_tag_id = 1
-                        sql_query = f"INSERT INTO project_tag(id, project_id, tag_id) VALUES({project_tag_id}, {data['id']}, {tag['id']})"
-                        cursor.execute(sql_query)
-
-                    # add prices in table
-                    sql_query = "SELECT MAX(id) from price"
+                    # add experience to meta_job
+                    sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'experience', '{data['experience'].lower()}')"
                     cursor.execute(sql_query)
-                    try:
-                        price_id =  cursor.fetchone()[0] + 1
-                    except:
-                        price_id = 1
-                    if data['price']['is_fixed']:
-                        sql_query = f"INSERT INTO price(id, is_fixed, value) VALUES({price_id}, 1, \'{{ \"value\": {data['price']['value']}}}\')"
-                        cursor.execute(sql_query)
-                    else:
-                        sql_query = f"INSERT INTO price(id, is_fixed, value) VALUES({price_id}, 0, \'{{ \"left_lim\": {data['price']['value']['Llim']}, \"right_lim\": {data['price']['value']['Rlim']}}}\')"
-                        cursor.execute(sql_query)
-
-                    # add price_id in progect table
-                    sql_query = f"update project set price_id={price_id} WHERE id={data['id']}"
-                    cursor.execute(sql_query)
-
 
             connection.commit()
 
 
     def save_advanced_project_data_to_db(data):
-        with open('./pages/{}.txt'.format(data['title'].replace('/', '')), 'wt') as file:
-            file.write(str(data))
+        with db_connection() as connection:
+            with connection.cursor() as cursor:
+                sql_query = f""
 
 
     def bot_send(data):
@@ -419,16 +343,21 @@ def scrap():
                 if soup.find('h1').text == 'Job not found':
                     continue
 
+
                 result = {}
+
+                # url
+                result['url'] = task['url']
+
                 result['uid'] = task['url'].split('~')[1][:-1]
                 with db_connection().cursor() as cursor:
                     # project id
-                    sql_query = f"select id from project where uid=\'{result['uid']}\'"
+                    sql_query = f"SELECT id FROM job WHERE link=\'{result['url']}\'"
                     cursor.execute(sql_query)
                     result['id'] = cursor.fetchone()[0]
 
                     # title
-                    sql_query = f"select title from project where id={result['id']}"
+                    sql_query = f"SELECT name FROM job WHERE id={result['id']}"
                     cursor.execute(sql_query)
                     result['title'] = cursor.fetchone()[0]
 
@@ -440,38 +369,33 @@ def scrap():
                     result['location'] = sections[0].find('div', class_='mt-20 d-flex align-items-center location-restriction').find('span').text.strip()
 
                     # description
-                    sql_query = f"select description from project where id={result['id']}"
+                    sql_query = f"SELECT description FROM job WHERE id={result['id']}"
                     cursor.execute(sql_query)
                     result['description'] = cursor.fetchone()[0]
 
                     # price
                     result['price'] = {}
 
-                    sql_query = f"select price_id from project where id={result['id']}"
+                    sql_query = f"SELECT meta_value FROM meta_job WHERE id_job={result['id']} AND meta_key='price'"
                     cursor.execute(sql_query)
-                    price_id = cursor.fetchone()[0]
-
-                    sql_query = f"select is_fixed from price where id={price_id}"
-                    cursor.execute(sql_query)
-                    result['price']['is_fixed'] = cursor.fetchone()[0]
-
-                    sql_query = f"select value from price where id={price_id}"
-                    cursor.execute(sql_query)
-                    result['price']['value'] = literal_eval(cursor.fetchone()[0])
+                    price = cursor.fetchone()[0]
+                    if 'True' in price:
+                        result['price'] = {'isFixed': True, 'cost': float(price[1:-1].split(', ')[-1].split(': ')[-1])}
+                    else:
+                        result['price'] = {'isFixed': False, 'cost': {'min': float(price[1:-1].split(', ')[1].split(': ')[-1][:-1]), 'max': float(price[1:-1].split(', ')[2].split(': ')[-1][:-1])}}
 
                     # tags
-                    sql_query = f"select tag_id from project_tag where project_id={result['id']}"
+                    sql_query = f"SELECT meta_value FROM meta_job WHERE id_job={result['id']} AND meta_key='skill'"
                     cursor.execute(sql_query)
-                    tag_ids = [element[0] for element in cursor.fetchall()]
-
-                    result['tags'] = []
-                    for tag_id in tag_ids:
-                        sql_query = f"select title from tag where id={tag_id}"
+                    tags_id = [int(element) for element in cursor.fetchone()[0][1:-1].split(', ')]
+                    result['tags'] = {}
+                    for tag_id in tags_id:
+                        sql_query = f"SELECT name, slug FROM skill WHERE id={tag_id}"
                         cursor.execute(sql_query)
-                        result['tags'].append(cursor.fetchone()[0])
+                        r = cursor.fetchone()
+                        result['tags']['name'] = r[0]
+                        result['tags']['slug'] = r[1]
 
-                    # url
-                    result['url'] = task['url']
 
                     # project_type
                     try:
@@ -568,7 +492,7 @@ def scrap():
                 with open('project_data.json', 'w') as file:
                     json.dump(result, file, indent=2, ensure_ascii=False)
                 save_advanced_project_data_to_db(result)
-                bot_send(result)
+                # bot_send(result)
             await asyncio.sleep(0.1)
 
 
