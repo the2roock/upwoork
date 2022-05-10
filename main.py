@@ -28,9 +28,9 @@ def scrap():
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.54 Safari/537.36')
-        # options.add_argument("no-sandbox")
-        # options.add_argument("--disable-extensions")
-        driver = webdriver.Chrome(executable_path='./chromedriver/chromedriver', chrome_options=options)
+        options.add_argument("no-sandbox")
+        options.add_argument("--disable-extensions")
+        driver = webdriver.Chrome(executable_path='./chromedriver', chrome_options=options)
 
         try:
             driver.get(url=url)
@@ -122,8 +122,9 @@ def scrap():
                     cursor.execute(sql_query)
 
                     # add experience to meta_job
-                    sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'experience', '{data['experience'].lower()}')"
-                    cursor.execute(sql_query)
+                    if data['experience'] != None:
+                        sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'experience', '{data['experience'].lower()}')"
+                        cursor.execute(sql_query)
 
             connection.commit()
 
