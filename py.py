@@ -48,16 +48,13 @@ def scrap():
 
     def get_html(url):
         print(len(task_urls))
+        driver = webdriver.Firefox(capabilities=firefox_capabilities, options=options, executable_path=geckodriver_path)
+        driver.get(url=url)
         try:
-            driver = webdriver.Firefox(capabilities=firefox_capabilities, options=options, executable_path=geckodriver_path)
-            driver.get(url=url)
             # print(driver.get_cookies())
             # pickle.dump(driver.get_cookies(), open('bad_cookie.pkl', 'wb'))
             sleep(1)
             result = driver.page_source
-            print('OK')
-            soup = BeautifulSoup(result, 'lxml')
-            print(soup.find('title'))
         except Exception as e:
             print(e)
         finally:
