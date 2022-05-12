@@ -644,9 +644,6 @@ def bot_config():
         with open('message.json', 'w') as file:
             json.dump(r, file, indent=2)
 
-        if not r['ok']:
-            continue
-
         new_message_id = r['update_id']
         if new_message_id == message_id:
             continue
@@ -661,7 +658,7 @@ def bot_config():
                     time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     sql_query = f"INSERT INTO user(code, name, time_last_update) VALUES({chat_id}, '{r['message']['from']['username']}', '{time}')"
                     cursor.execute(sql_query)
-        connection.commit()
+            connection.commit()
         sleep(3)
 
 
