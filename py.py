@@ -25,7 +25,7 @@ def scrap():
 
     tor_binary_path_driver = './tor/tor-browser_en-US/Browser/firefox'
 
-    geckodriver_path = './tor/geckodriver'
+    geckodriver_path = 'usr/bin/geckodriver'
 
     popen(tor_binary_path_driver)
     options = Options()
@@ -33,9 +33,10 @@ def scrap():
     options.add_argument('--headless')
 
     firefox_capabilities = webdriver.DesiredCapabilities.FIREFOX
+    firefox_capabilities['marionette'] = True
     firefox_capabilities['proxy'] = {
       "proxyType": "MANUAL",
-      'socksProxy': '127.0.0.1:9050',
+      'socksProxy': 'localhost:9050',
       "socksVersion": 5
     }
 
