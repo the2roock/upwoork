@@ -46,7 +46,7 @@ def scrap():
         try:
             driver = webdriver.Firefox(capabilities=firefox_capabilities, options=options, executable_path=geckodriver_path)
             driver.get(url=url)
-            sleep(2)
+            sleep(2.5)
             result = driver.page_source
             print('OK')
         except Exception as e:
@@ -347,6 +347,8 @@ def scrap():
 
             result = []
             sections = soup.find_all('section', class_='up-card-section up-card-list-section up-card-hover')
+            if sections == []:
+                continue
             domain = 'https://www.upwork.com/freelance-jobs/apply/'
             for section in sections:
                 data = {}
@@ -399,13 +401,7 @@ def scrap():
                     data['duration'] = None
 
 
-                try:
-                    tags_section = section.find('div', class_='up-skill-container').find('div', class_='up-skill-wrapper').find_all('a')
-                except:
-                    tags_section = []
-                    with open('html.html', 'wt') as file:
-                        file.write(html.html)
-                data['tags'] = [{'title': tag.text.replace('\'', ''), 'uid': tag['href'].split('=')[-1]} for tag in tags_section]
+                data['tags'] = [{'title': tag.text.replace('\'', ''), 'uid': tag['href'].split('=')[-1]} for tag in section.find('div', class_='up-skill-container').find('div', class_='up-skill-wrapper').find_all('a')]
                 data['url'] = domain + section.find('div', class_='row my-10').find('h4').find('a')['href'].split('/')[-2] + '/'
                 result.append(data)
 
