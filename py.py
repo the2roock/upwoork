@@ -25,7 +25,7 @@ def scrap():
 
     tor_binary_path_driver = './tor/tor-browser_en-US/Browser/firefox'
 
-    geckodriver_path = 'usr/bin/geckodriver'
+    geckodriver_path = '/usr/bin/geckodriver'
 
     popen(tor_binary_path_driver)
     options = Options()
@@ -44,10 +44,10 @@ def scrap():
 
     def get_html(url):
         print(len(task_urls))
+        driver = webdriver.Firefox(capabilities=firefox_capabilities, options=options, executable_path=geckodriver_path)
         try:
-            driver = webdriver.Firefox(capabilities=firefox_capabilities, options=options, executable_path=geckodriver_path)
             driver.get(url=url)
-            sleep(2.5)
+            sleep(4)
             result = driver.page_source
             print('OK')
         except Exception as e:
@@ -117,16 +117,17 @@ def scrap():
                     count_added_elements += 1
 
                     tags_id = []
-                    for tag in data['tags']:
-                        slug = tag['title'].lower().replace(' ', '_')
-                        sql_query = f"SELECT EXISTS(SELECT id FROM skill WHERE slug='{slug}')"
-                        cursor.execute(sql_query)
-                        if cursor.fetchone()[0] == 0:
-                            sql_query = f"INSERT INTO skill(name, slug) VALUES(\'{tag['title']}\', \'{slug}\')"
+                    if data['tags'] != 0:
+                        for tag in data['tags']:
+                            slug = tag['title'].lower().replace(' ', '_')
+                            sql_query = f"SELECT EXISTS(SELECT id FROM skill WHERE slug='{slug}')"
                             cursor.execute(sql_query)
-                        sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
-                        cursor.execute(sql_query)
-                        tags_id.append(cursor.fetchone()[0])
+                            if cursor.fetchone()[0] == 0:
+                                sql_query = f"INSERT INTO skill(name, slug) VALUES(\'{tag['title']}\', \'{slug}\')"
+                                cursor.execute(sql_query)
+                            sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
+                            cursor.execute(sql_query)
+                            tags_id.append(cursor.fetchone()[0])
 
                     # add tags to meta_job
                     sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({data['id']}, 'skill', \'{str(tags_id)}\')"
@@ -401,8 +402,10 @@ def scrap():
                 except:
                     data['duration'] = None
 
-
-                data['tags'] = [{'title': tag.text.replace('\'', ''), 'uid': tag['href'].split('=')[-1]} for tag in section.find('div', class_='up-skill-container').find('div', class_='up-skill-wrapper').find_all('a')]
+                try:
+                    data['tags'] = [{'title': tag.text.replace('\'', ''), 'uid': tag['href'].split('=')[-1]} for tag in section.find('div', class_='up-skill-container').find('div', class_='up-skill-wrapper').find_all('a')]
+                except:
+                    data['tags'] = 0
                 data['url'] = domain + section.find('div', class_='row my-10').find('h4').find('a')['href'].split('/')[-2] + '/'
                 result.append(data)
 
@@ -486,14 +489,32 @@ def scrap():
 
                     # tags
                     sql_query = f"SELECT meta_value FROM meta_job WHERE id_job={result['id']} AND meta_key='skill'"
-                    cursor.execute(sql_query)
-                    tags_id = [int(element) for element in cursor.fetchone()[0][1:-1].split(', ')]
-                    result['tags'] = []
-                    for tag_id in tags_id:
-                        sql_query = f"SELECT name, slug FROM skill WHERE id={tag_id}"
+                    try:
                         cursor.execute(sql_query)
-                        r = cursor.fetchone()
-                        result['tags'].append({'name': r[0], 'slug': r[1], 'id': tag_id})
+                        tags_id = [int(element) for element in cursor.fetchone()[0][1:-1].split(', ')]
+                        result['tags'] = []
+                        for tag_id in tags_id:
+                            sql_query = f"SELECT name, slug FROM skill WHERE id={tag_id}"
+                            cursor.execute(sql_query)
+                            r = cursor.fetchone()
+                            result['tags'].append({'name': r[0], 'slug': r[1], 'id': tag_id})
+                    except:
+                        tags_id = []
+                        tags_span = soup.find_all('span', class_='cfe-ui-job-skill up-skill-badge disabled m-0-left m-0-top m-xs-bottom')
+                        for tag in tags_span:
+                            slug = tag.text.lower().replace(' ', '_')
+                            sql_query = f"SELECT EXISTS(SELECT id FROM skill WHERE slug='{slug}')"
+                            cursor.execute(sql_query)
+                            if cursor.fetchone()[0] == 0:
+                                sql_query = f"INSERT INTO skill(name, slug) VALUES(\'{tag.text}\', \'{slug}\')"
+                                cursor.execute(sql_query)
+                            sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
+                            cursor.execute(sql_query)
+                            tags_id.append(cursor.fetchone()[0])
+
+                        # add tags to meta_job
+                        sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({result['id']}, 'skill', \'{str(tags_id)}\')"
+                        cursor.execute(sql_query)
 
                     # project_type
                     try:
