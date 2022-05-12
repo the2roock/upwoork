@@ -488,11 +488,11 @@ def scrap():
                         result['price'] = {'isFixed': False, 'cost': {'min': float(price[1:-1].split(', ')[1].split(': ')[-1][:-1]), 'max': float(price[1:-1].split(', ')[2].split(': ')[-1][:-1])}}
 
                     # tags
+                    result['tags'] = []
                     sql_query = f"SELECT meta_value FROM meta_job WHERE id_job={result['id']} AND meta_key='skill'"
                     try:
                         cursor.execute(sql_query)
                         tags_id = [int(element) for element in cursor.fetchone()[0][1:-1].split(', ')]
-                        result['tags'] = []
                         for tag_id in tags_id:
                             sql_query = f"SELECT name, slug FROM skill WHERE id={tag_id}"
                             cursor.execute(sql_query)
@@ -510,7 +510,9 @@ def scrap():
                                 cursor.execute(sql_query)
                             sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
                             cursor.execute(sql_query)
-                            tags_id.append(cursor.fetchone()[0])
+                            tag_id = cursor.fetchone()[0]
+                            tags_id.append(tag_id)
+                            result['tags'].append({'name': tag.text, 'slug': slug, 'id': tag_id})
 
                         # add tags to meta_job
                         sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({result['id']}, 'skill', \'{str(tags_id)}\')"
@@ -635,7 +637,7 @@ def bot_config():
         # getUpdates
         URL = URL_config + 'getUpdates'
         try:
-            r = requests.get(URL).json()[-1]
+            r = requests.get(URL).json()['result'][-1]
         except:
             continue
 
@@ -659,6 +661,7 @@ def bot_config():
                     time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     sql_query = f"INSERT INTO user(code, name, time_last_update) VALUES({chat_id}, '{r['message']['from']['username']}', '{time}')"
                     cursor.execute(sql_query)
+        connection.commit()
         sleep(3)
 
 
