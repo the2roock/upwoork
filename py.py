@@ -217,18 +217,18 @@ def scrap():
                 task = task_urls.pop(0)
                 print('project page in progress', task['url'])
 
-                html = get_html(url=task['url'])
-                soup = BeautifulSoup(html, 'lxml')
-
-                if str(soup) == '<html><head></head><body></body></html>':
-                    task_urls.append(task)
-                    continue
-
-                try:
-                    if not check_html.check_h1(soup.find('h1').text.strip()):
-                        continue
-                except:
-                    continue
+                # html = get_html(url=task['url'])
+                # soup = BeautifulSoup(html, 'lxml')
+                #
+                # if str(soup) == '<html><head></head><body></body></html>':
+                #     task_urls.append(task)
+                #     continue
+                #
+                # try:
+                #     if not check_html.check_h1(soup.find('h1').text.strip()):
+                #         continue
+                # except:
+                #     continue
 
                 result = {}
 
@@ -247,14 +247,14 @@ def scrap():
                     cursor.execute(sql_query)
                     result['title'] = cursor.fetchone()[0]
 
-                    sections = soup.find_all('section', class_='up-card-section')[:-1]
-                    # main tag
-                    result['specialty'] = {
-                        'title': sections[0].find('div', class_='cfe-ui-job-breadcrumbs d-inline-block mr-10').find('a').text.strip(),
-                        'occupation_uid': sections[0].find('div', class_='cfe-ui-job-breadcrumbs d-inline-block mr-10').find('a')['href'].split('=')[-1]
-                    }
+                    # sections = soup.find_all('section', class_='up-card-section')[:-1]
+                    # # main tag
+                    # result['specialty'] = {
+                    #     'title': sections[0].find('div', class_='cfe-ui-job-breadcrumbs d-inline-block mr-10').find('a').text.strip(),
+                    #     'occupation_uid': sections[0].find('div', class_='cfe-ui-job-breadcrumbs d-inline-block mr-10').find('a')['href'].split('=')[-1]
+                    # }
                     # location
-                    result['location'] = sections[0].find('div', class_='mt-20 d-flex align-items-center location-restriction').find('span').text.strip()
+                    # result['location'] = sections[0].find('div', class_='mt-20 d-flex align-items-center location-restriction').find('span').text.strip()
 
                     # description
                     sql_query = f"SELECT description FROM job WHERE id={result['id']}"
@@ -297,127 +297,127 @@ def scrap():
                                 'id': tag_id
                             })
                     except:
-                        tags_id = []
-                        tags_span = soup.find_all('span', class_='cfe-ui-job-skill up-skill-badge disabled m-0-left m-0-top m-xs-bottom')
-                        for tag in tags_span:
-                            slug = tag.text.lower().replace(' ', '_')
-                            sql_query = f"SELECT EXISTS(SELECT id FROM skill WHERE slug='{slug}')"
-                            cursor.execute(sql_query)
-                            if cursor.fetchone()[0] == 0:
-                                sql_query = f"INSERT INTO skill(name, slug) VALUES(\'{tag.text}\', \'{slug}\')"
-                                cursor.execute(sql_query)
-                            sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
-                            cursor.execute(sql_query)
-                            tags_id.append(cursor.fetchone()[0])
-
-                        for tag_id in tags_id:
-                            sql_query = f"SELECT name, slug FROM skill WHERE id={tag_id}"
-                            cursor.execute(sql_query)
-                            r = cursor.fetchone()
-                            result['tags'].append({
-                                'name': r[0],
-                                'slug': r[1],
-                                'id': tag_id
-                            })
+                        tags_id = ['name':'name', 'slug':'slug','id':100000]
+                        # tags_span = soup.find_all('span', class_='cfe-ui-job-skill up-skill-badge disabled m-0-left m-0-top m-xs-bottom')
+                        # for tag in tags_span:
+                        #     slug = tag.text.lower().replace(' ', '_')
+                        #     sql_query = f"SELECT EXISTS(SELECT id FROM skill WHERE slug='{slug}')"
+                        #     cursor.execute(sql_query)
+                        #     if cursor.fetchone()[0] == 0:
+                        #         sql_query = f"INSERT INTO skill(name, slug) VALUES(\'{tag.text}\', \'{slug}\')"
+                        #         cursor.execute(sql_query)
+                        #     sql_query = f"SELECT id FROM skill WHERE slug=\'{slug}\'"
+                        #     cursor.execute(sql_query)
+                        #     tags_id.append(cursor.fetchone()[0])
+                        #
+                        # for tag_id in tags_id:
+                        #     sql_query = f"SELECT name, slug FROM skill WHERE id={tag_id}"
+                        #     cursor.execute(sql_query)
+                        #     r = cursor.fetchone()
+                        #     result['tags'].append({
+                        #         'name': r[0],
+                        #         'slug': r[1],
+                        #         'id': tag_id
+                        #     })
 
                         # add tags to meta_job
-                        sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({result['id']}, 'skill', \'{str(tags_id)}\')"
-                        cursor.execute(sql_query)
+                        # sql_query = f"INSERT INTO meta_job(id_job, meta_key, meta_value) VALUES({result['id']}, 'skill', \'{str(tags_id)}\')"
+                        # cursor.execute(sql_query)
 
                     # project_type
-                    try:
-                        result['project_type'] = soup.find('ul', class_='cfe-ui-job-features p-0 fluid-layout-md').find_all('li')[-1].find('div', class_='header').find('strong').text.strip()
-                    except:
-                        result['project_type'] = 'Without project type'
+                    # try:
+                    #     result['project_type'] = soup.find('ul', class_='cfe-ui-job-features p-0 fluid-layout-md').find_all('li')[-1].find('div', class_='header').find('strong').text.strip()
+                    # except:
+                    #     result['project_type'] = 'Without project type'
 
                     # activity_on_this_job
-                    result['activity_on_this_job'] = {}
-                    for li in soup.find('ul', class_='list-unstyled mb-0').find_all('li'):
-
-                        # proposals
-                        if li.find('span').text.strip() == 'Proposals':
-                            try:
-                                result['activity_on_this_job']['proposals'] = li.find('div', class_='d-none d-md-block').find('span').text.strip()
-                            except:
-                                result['activity_on_this_job']['proposals'] = 'Without proposals'
-
-                        # interviewing
-                        elif li.find('span').text.strip() == 'Interviewing':
-                            try:
-                                result['activity_on_this_job']['interviewing'] = int(li.find('div', class_='d-none d-md-block').find('span').text.strip())
-                            except:
-                                result['activity_on_this_job']['interviewing'] = 'Without interviewing'
-
-                        # invites sent
-                        elif li.find('span').text.strip() == 'Invites sent':
-                            try:
-                                result['activity_on_this_job']['invites_sent'] = int(li.find('div', class_='d-none d-md-block').find('span').text.strip())
-                            except:
-                                result['activity_on_this_job']['invites_sent'] = 'Without invites_sent'
-
-                        # unanswered_invites
-                        elif li.find('span').text.strip() == 'Unanswered invites':
-                            try:
-                                result['activity_on_this_job']['unanswered_invites'] = int(li.find('div', class_='d-none d-md-block').find('span').text.strip())
-                            except:
-                                result['activity_on_this_job']['unanswered_invites'] = 'Without unswered invites'
-
-                        # last vieved by client
-                        elif li.find('span').text.strip() == 'Last viewed by client':
-                            try:
-                                result['activity_on_this_job']['last_vieved_by_client'] = li.find('div', class_='d-none d-md-block').find('span').text.strip()
-                            except:
-                                result['activity_on_this_job']['last_vieved_by_client'] = 'Without last vieved'
-
-
-                    # client
-                    result['client'] = {}
-
-                        # location
-                    try:
-                        result['client']['location'] = soup.find('li', attrs={'data-qa': 'client-location'}).find('strong').text.strip()
-                    except:
-                        result['client']['location'] = 'Without location'
-
-                        # client job posting stats
+                    # result['activity_on_this_job'] = {}
+                    # for li in soup.find('ul', class_='list-unstyled mb-0').find_all('li'):
+                    #
+                    #     # proposals
+                    #     if li.find('span').text.strip() == 'Proposals':
+                    #         try:
+                    #             result['activity_on_this_job']['proposals'] = li.find('div', class_='d-none d-md-block').find('span').text.strip()
+                    #         except:
+                    #             result['activity_on_this_job']['proposals'] = 'Without proposals'
+                    #
+                    #     # interviewing
+                    #     elif li.find('span').text.strip() == 'Interviewing':
+                    #         try:
+                    #             result['activity_on_this_job']['interviewing'] = int(li.find('div', class_='d-none d-md-block').find('span').text.strip())
+                    #         except:
+                    #             result['activity_on_this_job']['interviewing'] = 'Without interviewing'
+                    #
+                    #     # invites sent
+                    #     elif li.find('span').text.strip() == 'Invites sent':
+                    #         try:
+                    #             result['activity_on_this_job']['invites_sent'] = int(li.find('div', class_='d-none d-md-block').find('span').text.strip())
+                    #         except:
+                    #             result['activity_on_this_job']['invites_sent'] = 'Without invites_sent'
+                    #
+                    #     # unanswered_invites
+                    #     elif li.find('span').text.strip() == 'Unanswered invites':
+                    #         try:
+                    #             result['activity_on_this_job']['unanswered_invites'] = int(li.find('div', class_='d-none d-md-block').find('span').text.strip())
+                    #         except:
+                    #             result['activity_on_this_job']['unanswered_invites'] = 'Without unswered invites'
+                    #
+                    #     # last vieved by client
+                    #     elif li.find('span').text.strip() == 'Last viewed by client':
+                    #         try:
+                    #             result['activity_on_this_job']['last_vieved_by_client'] = li.find('div', class_='d-none d-md-block').find('span').text.strip()
+                    #         except:
+                    #             result['activity_on_this_job']['last_vieved_by_client'] = 'Without last vieved'
+                    #
+                    #
+                    # # client
+                    # result['client'] = {}
+                    #
+                    #     # location
                     # try:
-                    result['client']['job_posting_stats'] = {}
-                        # jobs posted
-                    result['client']['job_posting_stats']['jobs_posted'] = int(soup.find('li', attrs={'data-qa': 'client-job-posting-stats'}).find('strong').text.strip().split(' ')[0])
-
-                    hire_rate_open_jobs = soup.find('li', attrs={'data-qa': 'client-job-posting-stats'}).find('div').text.strip().split(',')
-
-                        # hire rate
-                    result['client']['job_posting_stats']['hire_rate'] = int(hire_rate_open_jobs[0].strip().split('%')[0])
-
-                        # open jobs
-                    result['client']['job_posting_stats']['open_jobs'] = int(hire_rate_open_jobs[1].strip().split(' ')[0])
+                    #     result['client']['location'] = soup.find('li', attrs={'data-qa': 'client-location'}).find('strong').text.strip()
                     # except:
-                    #     result['client']['job_posting_stats'] = None
-
-                        # client company profile
-                    try:
-                        result['client']['company_profile'] = soup.find('li', attrs={'data-qa': 'client-company-profile'}).find('strong').text.strip()
-                    except:
-                        result['client']['company_profile'] = 'Without company profile'
-
-                        # client spend
-                    try:
-                        result['client']['spend'] = soup.find('strong', attrs={'data-qa': 'client-spend'}).find('span').text.split(' ')[0]
-                    except:
-                        result['client']['spend'] = 'Without spend'
-
-                        #client hires
-                    try:
-                        hires = soup.find('div', attrs={'data-qa': 'client-hires'}).text.strip()
-                        result['client']['hires'] = int(hires.split(',')[0].split(' ')[0])
-                    except:
-                        result['client']['hires'] = 'Without hires'
-
-                    try:
-                        result['client']['active_hires'] = int(hires.split(',')[1].split(' ')[0])
-                    except:
-                        result['client']['active_hires'] = 'Without active hires'
+                    #     result['client']['location'] = 'Without location'
+                    #
+                    #     # client job posting stats
+                    # # try:
+                    # result['client']['job_posting_stats'] = {}
+                    #     # jobs posted
+                    # result['client']['job_posting_stats']['jobs_posted'] = int(soup.find('li', attrs={'data-qa': 'client-job-posting-stats'}).find('strong').text.strip().split(' ')[0])
+                    #
+                    # hire_rate_open_jobs = soup.find('li', attrs={'data-qa': 'client-job-posting-stats'}).find('div').text.strip().split(',')
+                    #
+                    #     # hire rate
+                    # result['client']['job_posting_stats']['hire_rate'] = int(hire_rate_open_jobs[0].strip().split('%')[0])
+                    #
+                    #     # open jobs
+                    # result['client']['job_posting_stats']['open_jobs'] = int(hire_rate_open_jobs[1].strip().split(' ')[0])
+                    # # except:
+                    # #     result['client']['job_posting_stats'] = None
+                    #
+                    #     # client company profile
+                    # try:
+                    #     result['client']['company_profile'] = soup.find('li', attrs={'data-qa': 'client-company-profile'}).find('strong').text.strip()
+                    # except:
+                    #     result['client']['company_profile'] = 'Without company profile'
+                    #
+                    #     # client spend
+                    # try:
+                    #     result['client']['spend'] = soup.find('strong', attrs={'data-qa': 'client-spend'}).find('span').text.split(' ')[0]
+                    # except:
+                    #     result['client']['spend'] = 'Without spend'
+                    #
+                    #     #client hires
+                    # try:
+                    #     hires = soup.find('div', attrs={'data-qa': 'client-hires'}).text.strip()
+                    #     result['client']['hires'] = int(hires.split(',')[0].split(' ')[0])
+                    # except:
+                    #     result['client']['hires'] = 'Without hires'
+                    #
+                    # try:
+                    #     result['client']['active_hires'] = int(hires.split(',')[1].split(' ')[0])
+                    # except:
+                    #     result['client']['active_hires'] = 'Without active hires'
 
 
                 save_advanced_project_data_to_db(result)
