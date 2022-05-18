@@ -234,47 +234,50 @@ def check_unfilters(unfilters, data):
 
 
 async def send_messages(data):
-    with db_connection() as connection:
-        with connection.cursor() as cursor:
-            sql_query = "SELECT id, message, id_filter, time FROM messages WHERE status=0"
-            cursor.execute(sql_query)
-            messages = [{'id': element[0], 'message': element[1], 'id_filter': element[2], 'time': element[3]} for element in cursor.fetchall()]
-            for message in messages:
-                sql_query = f"SELECT id_option FROM filter_elements WHERE id_filter={message['id_filter']}"
+    while True
+        with db_connection() as connection:
+            with connection.cursor() as cursor:
+                sql_query = "SELECT id, message, id_filter, time FROM messages WHERE status=0"
                 cursor.execute(sql_query)
-                option_ids = cursor.fetchall()
-                work_time_option_id = 0
-                for option_id in option_ids:
-                    sql_query = f"SELECT func FROM option_for_filter WHERE id={option_id}"
+                messages = [{'id': element[0], 'message': element[1], 'id_filter': element[2], 'time': element[3]} for element in cursor.fetchall()]
+                for message in messages:
+                    sql_query = f"SELECT id_option FROM filter_elements WHERE id_filter={message['id_filter']}"
                     cursor.execute(sql_query)
-                    if cursor.fetchone()[0] == 'work_time':
-                        work_time_option_id = option_id
-                sql_query = f"SELECT id_user from filters WHERE id = {message['id_filter']}"
-                cursor.execute(sql_query)
-                id_user = cursor.fetchone()[0]
-                sql_query = f"SELECT code FROM user WHERE id = {id_user}"
-                cursor.execute(sql_query)
-                chat_id = cursor.fetchone()[0]
-                if work_time_option_id == 0:
-                    send(chat_id=chat_id, text=message['message'])
-                else:
-                    sql_query = f"SELECT option_value FROM filter_elements WHERE id_option={work_time_option_id} AND id_filter={message['id_filter']}"
+                    option_ids = cursor.fetchall()
+                    work_time_option_id = 0
+                    for option_id in option_ids:
+                        sql_query = f"SELECT func FROM option_for_filter WHERE id={option_id}"
+                        cursor.execute(sql_query)
+                        if cursor.fetchone()[0] == 'work_time':
+                            work_time_option_id = option_id
+                    sql_query = f"SELECT id_user from filters WHERE id = {message['id_filter']}"
                     cursor.execute(sql_query)
-                    work_time = [[e for e in element.split(':')] for element in cursor.fetchone().split('-')]
-                    time = datetime.now()
-                    minutes = []
-                    minutes.append(int(work_time[0][0])*60 + int(work_time[0][1]))
-                    if value[1] == ['00', '00']:
-                        minutes.append(1440)
+                    id_user = cursor.fetchone()[0]
+                    sql_query = f"SELECT code FROM user WHERE id = {id_user}"
+                    cursor.execute(sql_query)
+                    chat_id = cursor.fetchone()[0]
+                    if work_time_option_id == 0:
+                        send(chat_id=chat_id, text=message['message'])
                     else:
-                        minutes.append(int(work_time[1][0])*60 + int(work_time[1][1]))
-                    if not (minutes[0] <= (time.hour*60 + time.minute + 180) <= minutes[1]):
-                        continue
-                    sql_query = f"UPDATE messages SET status=1 WHERE id={message['id']}"
-                    cursor.execute(sql_query)
-                    send(chat_id=chat_id, text=message['message'])
+                        sql_query = f"SELECT option_value FROM filter_elements WHERE id_option={work_time_option_id} AND id_filter={message['id_filter']}"
+                        cursor.execute(sql_query)
+                        work_time = [[e for e in element.split(':')] for element in cursor.fetchone().split('-')]
+                        time = datetime.now()
+                        minutes = []
+                        minutes.append(int(work_time[0][0])*60 + int(work_time[0][1]))
+                        if value[1] == ['00', '00']:
+                            minutes.append(1440)
+                        else:
+                            minutes.append(int(work_time[1][0])*60 + int(work_time[1][1]))
+                        if not (minutes[0] <= (time.hour*60 + time.minute + 180) <= minutes[1]):
+                            continue
+                        sql_query = f"UPDATE messages SET status=1 WHERE id={message['id']}"
+                        cursor.execute(sql_query)
+                        send(chat_id=chat_id, text=message['message'])
 
-        connection.commit()
+            connection.commit()
+        asyncio.sleep(90)
+
 
 def bot_config():
     print('bot_config started')
